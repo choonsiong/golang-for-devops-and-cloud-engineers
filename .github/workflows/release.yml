@@ -4,7 +4,7 @@ on:
     branches:
       - main
 env:
-  version: 1.0.2
+  version: 1.0.3
 jobs:
   release:
     runs-on: ubuntu-latest
