@@ -69,7 +69,7 @@ func doReq(url string) (Response, error) {
 
 func main() {
 	if len(os.Args) < 2 {
-		fmt.Println("usage: ./parsejson <url>")
+		fmt.Println("usage: ./prog <url>")
 		os.Exit(1)
 	}
 
