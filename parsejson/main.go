@@ -11,15 +11,9 @@ import (
 	"strings"
 )
 
-type Words struct {
-	Page  string   `json:"page"`
-	Input string   `json:"input"`
-	Words []string `json:"words"`
-}
-
 func main() {
 	if len(os.Args) < 2 {
-		fmt.Println("Usage: ./http-get <url>")
+		fmt.Println("usage: ./parsejson <url>")
 		os.Exit(1)
 	}
 
@@ -40,23 +34,42 @@ func main() {
 		}
 	}(response.Body)
 
-	bytes, err := io.ReadAll(response.Body)
-	if err != nil {
-		log.Fatal(err)
-	}
-
 	if response.StatusCode != http.StatusOK {
 		fmt.Println("invalid status code:", response.StatusCode)
 		os.Exit(1)
 	}
 
-	var w Words
-
-	err = json.Unmarshal(bytes, &w)
+	bytes, err := io.ReadAll(response.Body)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	fmt.Printf("%#v\n", w)
-	fmt.Printf("%v\n", strings.Join(w.Words, ","))
+	var page Page
+	err = json.Unmarshal(bytes, &page)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	switch page.Name {
+	case "words":
+		var w Words
+		err = json.Unmarshal(bytes, &w)
+		if err != nil {
+			log.Fatal(err)
+		}
+		fmt.Printf("%#v\n", w)
+		fmt.Printf("%v\n", strings.Join(w.Words, ","))
+	case "occurrence":
+		var o Occurrence
+		err = json.Unmarshal(bytes, &o)
+		if err != nil {
+			log.Fatal(err)
+		}
+		fmt.Printf("%#v\n", o)
+		for k, v := range o.Words {
+			fmt.Printf("%s: %d\n", k, v)
+		}
+	default:
+		log.Fatal("unknown page:", page.Name)
+	}
 }
