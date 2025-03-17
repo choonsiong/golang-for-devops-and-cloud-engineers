@@ -1,12 +1,14 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"log"
 	"net/http"
 	"net/url"
 	"os"
+	"strings"
 )
 
 type Words struct {
@@ -40,9 +42,21 @@ func main() {
 
 	bytes, err := io.ReadAll(response.Body)
 	if err != nil {
-		return
+		log.Fatal(err)
 	}
 
-	fmt.Println("Status Code:", response.StatusCode)
-	fmt.Println("Response Body:", string(bytes))
+	if response.StatusCode != http.StatusOK {
+		fmt.Println("invalid status code:", response.StatusCode)
+		os.Exit(1)
+	}
+
+	var w Words
+
+	err = json.Unmarshal(bytes, &w)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Printf("%#v\n", w)
+	fmt.Printf("%v\n", strings.Join(w.Words, ","))
 }
