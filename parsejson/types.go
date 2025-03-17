@@ -1,5 +1,10 @@
 package main
 
+import (
+	"fmt"
+	"strings"
+)
+
 type Page struct {
 	Name string `json:"page"`
 }
@@ -11,7 +16,7 @@ type Words struct {
 }
 
 func (w Words) GetResponse() string {
-	return w.Name
+	return fmt.Sprintf("%s", strings.Join(w.Words, ","))
 }
 
 type Occurrence struct {
@@ -20,5 +25,9 @@ type Occurrence struct {
 }
 
 func (o Occurrence) GetResponse() string {
-	return o.Name
+	var arr []string // create a nil slice
+	for k, v := range o.Words {
+		arr = append(arr, fmt.Sprintf("%s:%d", k, v))
+	}
+	return fmt.Sprintf("%s", strings.Join(arr, ","))
 }
