@@ -11,17 +11,7 @@ import (
 	"strings"
 )
 
-func main() {
-	if len(os.Args) < 2 {
-		fmt.Println("usage: ./parsejson <url>")
-		os.Exit(1)
-	}
-
-	if _, err := url.ParseRequestURI(os.Args[1]); err != nil {
-		fmt.Println("invalid url:", err)
-		os.Exit(1)
-	}
-
+func doReq(url string) (Response, error) {
 	response, err := http.Get(os.Args[1])
 	if err != nil {
 		log.Fatal("http get error:", err)
@@ -59,6 +49,7 @@ func main() {
 		}
 		fmt.Printf("%#v\n", w)
 		fmt.Printf("%v\n", strings.Join(w.Words, ","))
+		return w, nil
 	case "occurrence":
 		var o Occurrence
 		err = json.Unmarshal(bytes, &o)
@@ -69,7 +60,32 @@ func main() {
 		for k, v := range o.Words {
 			fmt.Printf("%s: %d\n", k, v)
 		}
+		return o, nil
 	default:
-		log.Fatal("unknown page:", page.Name)
+		return nil, nil
 	}
+}
+
+func main() {
+	if len(os.Args) < 2 {
+		fmt.Println("usage: ./parsejson <url>")
+		os.Exit(1)
+	}
+
+	if _, err := url.ParseRequestURI(os.Args[1]); err != nil {
+		fmt.Println("invalid url:", err)
+		os.Exit(1)
+	}
+
+	resp, err := doReq(os.Args[1])
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if resp == nil {
+		fmt.Println("response is nil")
+		os.Exit(1)
+	}
+
+	fmt.Println("Response:", resp.GetResponse())
 }
