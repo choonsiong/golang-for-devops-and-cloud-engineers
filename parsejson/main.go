@@ -2,21 +2,23 @@ package main
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"log"
 	"net/http"
 	"net/url"
 	"os"
-	"strconv"
 	"strings"
 )
 
 func doReq(url string) (Response, error) {
 	response, err := http.Get(url)
 	if err != nil {
-		return nil, errors.New("http get error")
+		return nil, RequestError{
+			HTTPCode: response.StatusCode,
+			Body:     "",
+			Err:      err.Error(),
+		}
 	}
 
 	defer func(Body io.ReadCloser) {
@@ -27,18 +29,38 @@ func doReq(url string) (Response, error) {
 	}(response.Body)
 
 	if response.StatusCode != http.StatusOK {
-		return nil, errors.New("invalid status code: " + strconv.Itoa(response.StatusCode))
+		return nil, RequestError{
+			HTTPCode: response.StatusCode,
+			Body:     "",
+			Err:      "invalid status code",
+		}
 	}
 
 	bytes, err := io.ReadAll(response.Body)
 	if err != nil {
-		return nil, errors.New("io read all error")
+		return nil, RequestError{
+			HTTPCode: response.StatusCode,
+			Body:     string(bytes),
+			Err:      err.Error(),
+		}
+	}
+
+	if !json.Valid(bytes) {
+		return nil, RequestError{
+			HTTPCode: response.StatusCode,
+			Body:     "",
+			Err:      "no valid JSON response",
+		}
 	}
 
 	var page Page
 	err = json.Unmarshal(bytes, &page)
 	if err != nil {
-		return nil, errors.New("unmarshal error")
+		return nil, RequestError{
+			HTTPCode: response.StatusCode,
+			Body:     string(bytes),
+			Err:      err.Error(),
+		}
 	}
 
 	switch page.Name {
@@ -46,7 +68,11 @@ func doReq(url string) (Response, error) {
 		var w Words
 		err = json.Unmarshal(bytes, &w)
 		if err != nil {
-			return nil, errors.New("unmarshal error")
+			return nil, RequestError{
+				HTTPCode: response.StatusCode,
+				Body:     string(bytes),
+				Err:      err.Error(),
+			}
 		}
 		fmt.Printf("%#v\n", w)
 		fmt.Printf("%v\n", strings.Join(w.Words, ","))
@@ -55,7 +81,11 @@ func doReq(url string) (Response, error) {
 		var o Occurrence
 		err = json.Unmarshal(bytes, &o)
 		if err != nil {
-			return nil, errors.New("unmarshal error")
+			return nil, RequestError{
+				HTTPCode: response.StatusCode,
+				Body:     string(bytes),
+				Err:      err.Error(),
+			}
 		}
 		fmt.Printf("%#v\n", o)
 		for k, v := range o.Words {
@@ -80,7 +110,11 @@ func main() {
 
 	resp, err := doReq(os.Args[1])
 	if err != nil {
-		log.Fatal(err)
+		if newErr, ok := err.(RequestError); ok {
+			fmt.Println(newErr.HTTPCode, newErr.Body, newErr.Err)
+		}
+
+		log.Fatal(err.Error())
 	}
 
 	if resp == nil {
